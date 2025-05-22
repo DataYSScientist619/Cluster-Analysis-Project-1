@@ -1,0 +1,228 @@
+---
+
+# R Notebook Instructions
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you
+execute code within the notebook, the results appear beneath the code.
+
+Try executing a chunk by clicking the *Run* button within the chunk or
+by placing your cursor inside it and pressing *Ctrl+Shift+Enter*.
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or
+by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output
+will be saved alongside it (click the *Preview* button or press
+*Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the
+editor. Consequently, unlike *Knit*, *Preview* does not run any R code
+chunks. Instead, the output of the chunk when it was last run in the
+editor is displayed.
+
+You can show or hide the outline using the "Outline" button inside of
+the source pane.
+
+You can view this notebook in Source mode or in Visual mode by clicking
+on the view you want to use in the Source pane.
+
+# Data: Employees.csv
+Using a dataset developed by IBM data scientists and used to look at factors related to employee job satisfaction and attrition. The original dataset is accessible through Kaggle. 
+ 
+Background: Purpose is to aid in developing strategies to address the job satisfaction needs of the company’s employees. The theoretical business question is: “How can our company effectively target strategies to improve employee satisfaction to specific groups of employees based on their characteristics and performance?”
+ 
+The first step to creating those strategies is to segment the company’s 1,470 employees into clusters based on key characteristics and performance indicators. 
+ 
+Variables: The variables used for this analysis are:
+
+Age: Age of employee in years
+MonthlyIncome: How much the employee earns per month
+PercentSalaryHike: The percentage increase in salary over two years
+YearsAtCompany: The total number of years the employee has been with the company
+
+
+
+
+```{r}
+#install packages
+install.packages("tidyverse")
+install.packages("cluster")
+install.packages("fpc")
+
+#load libraries
+library(tidyverse)
+library(cluster)
+library(fpc)
+
+#set working directory
+setwd("/Users/yanna_sanchez/Downloads") 
+
+Employeedf <- read.csv("Employees.csv")
+View(Employeedf)
+```
+
+K-means Cluster Analysis
+
+```{r}
+Equantdf<- Employeedf[c(1,16,20,25)]
+View(Equantdf)
+
+Equantdfn<- scale(Equantdf)
+View(Equantdfn)
+
+set.seed(42)
+```
+
+
+```{r}
+wss<- function(k){kmeans(Equantdfn, k, nstart=10)}
+```
+
+
+```{r}
+wss <- function(k) {
+  kmeans(as.matrix(Equantdfn), centers = k, nstart = 10)$tot.withinss
+}
+
+k_values <- 1:10
+wss_values <- purrr::map_dbl(k_values, wss)
+
+elbowdf <- data.frame(k_values, wss_values)
+
+ggplot(elbowdf, aes(x = k_values, y = wss_values)) +
+  geom_line() +
+  geom_point()
+
+```
+
+
+```{r}
+k4<-kmeans(Equantdfn, 4, nstart=1000)
+
+```
+
+
+
+```{r}
+str(k4)
+k4
+```
+
+
+```{r}
+cluster.stats(dist(Equantdfn, method="euclidean"), k4$cluster)
+
+```
+
+
+```{r}
+Equantdfk<-cbind(Equantdf, clusterID=k4$cluster)
+View(Equantdfk)
+
+```
+
+
+```{r}
+summarise_all(Equantdf, mean)
+
+```
+
+
+```{r}
+summarise_all(Equantdf, median)
+```
+
+
+```{r}
+Equantdfk %>%
+  group_by(clusterID) %>%
+  summarize_all(mean)
+
+```
+
+
+
+Conduct a hierarchical cluster analysis using the same 
+four continuous variables that we used in the k-means
+cluster analysis.
+
+```{r}
+install.packages("tidyverse")
+install.packages("cluster")
+install.packages("fpc")
+install.packages("factoextra")
+install.packages("janitor")
+
+library(tidyverse) 
+library(cluster)
+library(fpc)
+library(factoextra)
+library(janitor)
+library(dplyr)
+
+
+```
+
+
+
+```{r}
+scaled_Edf<-scale(Equantdf)
+
+```
+
+
+```{r}
+match_dist<-dist(scaled_Edf, method="euclidean")
+
+```
+
+
+```{r}
+match_hclust <- hclust(match_dist, method = "ward.D")
+
+
+```
+
+
+```{r}
+plot(match_hclust)
+
+```
+
+
+```{r}
+match_hclust<-cutree(match_hclust, k=4)
+
+```
+
+
+```{r}
+Elink <- cbind(Equantdf, clusterID = match_hclust)
+
+```
+
+
+```{r}
+library(dplyr)
+Elink %>%
+  group_by(clusterID) %>%
+  summarize(count = n())
+
+```
+
+
+```{r}
+summarize_all(Equantdf, mean)
+
+```
+
+
+
+```{r}
+
+Elink %>%
+  group_by(clusterID) %>%
+  summarize_all(mean)
+
+
+```
